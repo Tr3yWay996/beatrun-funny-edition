@@ -6,7 +6,7 @@ if not success or not GWSockets then
     chat.AddText(Color(255,0,0), "[Beatrun] gwsockets module not found or failed to load!")
     return
 end
-local tidalRespawnEnabled = false -- This is on by default, can be toggled via console command
+local RespawnRewinding = "courses" -- "never", "yeah" or "courses"
 local socket = GWSockets.createWebSocket("ws://localhost:24123/")
 socket:open()
 
@@ -62,50 +62,73 @@ concommand.Add("beatrun_tidal-toggle", function()
     end
 end)
 
-local function TidalAutoComplete( cmd, args, ... )
-	local possibleArgs = { ... }
-	local autoCompletes = {}
+local function TidalAutoComplete(cmd, args, ...)
+    local possibleArgs = { ... }
+    local autoCompletes = {}
 
-	--TODO: Handle "test test" "test test" type arguments
-	local arg = string.Split( args:TrimLeft(), " " )
+    local arg = string.Split(args:TrimLeft(), " ")
+    local lastItem = nil
+    for i, str in pairs(arg) do
+        if (str == "" and (lastItem and lastItem == "")) then table.remove(arg, i) end
+        lastItem = str
+    end
 
-	local lastItem = nil
-	for i, str in pairs( arg ) do
-		if ( str == "" && ( lastItem && lastItem == "" ) ) then table.remove( arg, i ) end
-		lastItem = str
-	end -- Remove empty entries. Can this be done better?
+    local numArgs = #arg
+    local lastArg = table.remove(arg, numArgs)
+    local prevArgs = table.concat(arg, " ")
+    if (#prevArgs > 0) then prevArgs = " " .. prevArgs end
 
-	local numArgs = #arg
-	local lastArg = table.remove( arg, numArgs )
-	local prevArgs = table.concat( arg, " " )
-	if ( #prevArgs > 0 ) then prevArgs = " " .. prevArgs end
+    local possibilities = possibleArgs[numArgs] or { lastArg }
+    for _, acStr in pairs(possibilities) do
+        if (not acStr:StartsWith(lastArg)) then continue end
+        table.insert(autoCompletes, cmd .. prevArgs .. " " .. acStr)
+    end
 
-	local possibilities = possibleArgs[ numArgs ] or { lastArg }
-	for _, acStr in pairs( possibilities ) do
-		if ( !acStr:StartsWith( lastArg ) ) then continue end
-		table.insert( autoCompletes, cmd .. prevArgs .. " " .. acStr )
-	end
-		
-	return autoCompletes
+    return autoCompletes
 end
 
-concommand.Add("beatrun_tidal_respawn_toggle", function(ply, cmd, args)
-    if args[1] == "enabled" then
-        tidalRespawnEnabled = true
-    elseif args[1] == "disabled" then
-        tidalRespawnEnabled = false
+concommand.Add("beatrun_rw_tgl", function(ply, cmd, args)
+    local a = args[1] and args[1]:lower() or nil
+    if a == "yeah" or a == "on" or a == "enable" then
+        RespawnRewinding = "yeah"
+    elseif a == "never" or a == "off" or a == "disable" then
+        RespawnRewinding = "never"
+    elseif a == "courses" then
+        RespawnRewinding = "courses"
     else
-        tidalRespawnEnabled = not tidalRespawnEnabled
+        -- cycle order: never -> yeah -> courses -> never
+        if RespawnRewinding == "never" then
+            RespawnRewinding = "yeah"
+        elseif RespawnRewinding == "yeah" then
+            RespawnRewinding = "courses"
+        else
+            RespawnRewinding = "never"
+        end
     end
-    chat.AddText(Color(0,200,255), "[Beatrun] TIDAL respawn seek is now " .. (tidalRespawnEnabled and "ENABLED" or "DISABLED"))
+    chat.AddText(Color(0,200,255), "[Beatrun] TIDAL respawn seek mode: " .. RespawnRewinding)
 end, function(cmd, args)
-    return TidalAutoComplete(cmd, args, { "enabled", "disabled" })
+    return TidalAutoComplete(cmd, args, { "yeah", "never", "courses" })
 end)
 
 hook.Add("BeatrunSpawn", "TidalRespawnSeek", function(spawntime, replay)
-    if tidalRespawnEnabled then
-        chat.AddText(Color(0,200,255), "[Beatrun] Respawn detected!.")
-        local msg = util.TableToJSON({ action = "seek", time = 0 })
-        socket:write(msg)
-    end
+    -- Determine if currently inside a course
+    local inCourse = (Course_Name and Course_Name ~= "") or false
+
+    if RespawnRewinding == "never" then return end
+    if RespawnRewinding == "courses" and not inCourse then return end
+
+    local msg = util.TableToJSON({ action = "seek", time = 0 })
+    socket:write(msg)
+    chat.AddText(Color(0,200,255), "[Beatrun] Respawn detected (mode: " .. RespawnRewinding .. ").")
+end)
+
+hook.Add("BeatrunHUDCourse", "BeatrunHUDCourse", function(spawntime, replay)
+    InCourse = not (not Course_Name or Course_Name == "")
+end)
+
+concommand.Add("debug-RespawnRewind", function()
+    print(RespawnRewinding)
+end)
+concommand.Add("debug-InCourse", function()
+    print(InCourse)
 end)
