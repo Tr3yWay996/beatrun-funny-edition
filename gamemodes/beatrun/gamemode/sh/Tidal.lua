@@ -6,7 +6,7 @@ if not success or not GWSockets then
     chat.AddText(Color(255,0,0), "[Beatrun] gwsockets module not found or failed to load!")
     return
 end
-local tidalRespawnEnabled = true -- This is on by default, can be toggled via console command
+local tidalRespawnEnabled = false -- This is on by default, can be toggled via console command
 local socket = GWSockets.createWebSocket("ws://localhost:24123/")
 socket:open()
 
@@ -102,7 +102,7 @@ end, function(cmd, args)
     return TidalAutoComplete(cmd, args, { "enabled", "disabled" })
 end)
 
-net.Receive("BeatrunSpawn", function()
+hook.Add("BeatrunSpawn", "TidalRespawnSeek", function(spawntime, replay)
     if tidalRespawnEnabled then
         chat.AddText(Color(0,200,255), "[Beatrun] Respawn detected!.")
         local msg = util.TableToJSON({ action = "seek", time = 0 })
