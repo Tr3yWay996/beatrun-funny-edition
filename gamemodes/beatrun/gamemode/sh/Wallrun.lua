@@ -1,5 +1,5 @@
-local vwrtime = 1.5
-local hwrtime = 1.5
+local vwrtime = 3
+local hwrtime = 3
 tiltdir = 1
 local tilt = 0
 

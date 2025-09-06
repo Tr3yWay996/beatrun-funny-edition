@@ -403,7 +403,7 @@ net.Receive("BeatrunSpawn", function()
 	local spawntime = net.ReadFloat()
 	local replay = net.ReadBool()
 
-	hook.Run("BeatrunSpawn")
+	hook.Run("BeatrunSpawn", spawntime, replay)
 
 	LocalPlayer().InReplay = replay
 
