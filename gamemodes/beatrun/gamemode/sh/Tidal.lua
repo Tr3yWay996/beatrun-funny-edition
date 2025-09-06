@@ -62,11 +62,44 @@ concommand.Add("beatrun_tidal-toggle", function()
     end
 end)
 
-concommand.Add("beatrun_tidal_respawn_toggle", function()
-    tidalRespawnEnabled = not tidalRespawnEnabled
+local function TidalAutoComplete( cmd, args, ... )
+	local possibleArgs = { ... }
+	local autoCompletes = {}
+
+	--TODO: Handle "test test" "test test" type arguments
+	local arg = string.Split( args:TrimLeft(), " " )
+
+	local lastItem = nil
+	for i, str in pairs( arg ) do
+		if ( str == "" && ( lastItem && lastItem == "" ) ) then table.remove( arg, i ) end
+		lastItem = str
+	end -- Remove empty entries. Can this be done better?
+
+	local numArgs = #arg
+	local lastArg = table.remove( arg, numArgs )
+	local prevArgs = table.concat( arg, " " )
+	if ( #prevArgs > 0 ) then prevArgs = " " .. prevArgs end
+
+	local possibilities = possibleArgs[ numArgs ] or { lastArg }
+	for _, acStr in pairs( possibilities ) do
+		if ( !acStr:StartsWith( lastArg ) ) then continue end
+		table.insert( autoCompletes, cmd .. prevArgs .. " " .. acStr )
+	end
+		
+	return autoCompletes
+end
+
+concommand.Add("beatrun_tidal_respawn_toggle", function(ply, cmd, args)
+    if args[1] == "enabled" then
+        tidalRespawnEnabled = true
+    elseif args[1] == "disabled" then
+        tidalRespawnEnabled = false
+    else
+        tidalRespawnEnabled = not tidalRespawnEnabled
+    end
     chat.AddText(Color(0,200,255), "[Beatrun] TIDAL respawn seek is now " .. (tidalRespawnEnabled and "ENABLED" or "DISABLED"))
 end, function(cmd, args)
-    return SimpleAutoComplete(cmd, args, { "toggle" })
+    return TidalAutoComplete(cmd, args, { "enabled", "disabled" })
 end)
 
 net.Receive("BeatrunSpawn", function()
@@ -74,4 +107,5 @@ net.Receive("BeatrunSpawn", function()
         chat.AddText(Color(0,200,255), "[Beatrun] Respawn detected!.")
         local msg = util.TableToJSON({ action = "seek", time = 0 })
         socket:write(msg)
+    end
 end)
