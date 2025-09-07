@@ -1,9 +1,23 @@
-local vwrtime = 3
-local hwrtime = 3
+local vwrtime = 1.5 -- Vertical wallrun time
+local hwrtime = 1.5 -- Horizontal wallrun time
 tiltdir = 1
 local tilt = 0
 
 PuristWallrun = CreateConVar("Beatrun_PuristWallrun", 1, {FCVAR_REPLICATED, FCVAR_ARCHIVE}, "'Realistic' wallrunning", 0, 1)
+
+-- Shared feedback utility: uses chat.AddText on client, ChatPrint on server, or console fallback
+local function BR_Feedback(ply, clr, msg)
+	clr = clr or Color(255,255,255)
+	if CLIENT then
+		chat.AddText(clr, msg)
+	else
+		if IsValid(ply) then
+			ply:ChatPrint(msg)
+		else
+			print(msg)
+		end
+	end
+end
 
 function WallrunningTilt(ply, pos, ang, fov)
 	local wr = ply:GetWallrun()
@@ -20,6 +34,50 @@ function WallrunningTilt(ply, pos, ang, fov)
 
 	tilt = math.Approach(tilt, wr >= 2 and 15 * tiltdir or 0, RealFrameTime() * (wr >= 2 and 30 or 70) * tiltspeed)
 end
+
+-- Set horizontal wallrun maximum duration (seconds)
+concommand.Add("beatrun_hwrtime", function(ply, cmd, args)
+	local inp = tonumber(args[1])
+	if not inp then
+		BR_Feedback(ply, Color(255,0,0), "[Beatrun] Usage: beatrun_hwrtime <seconds> (0.5 - 30)")
+		return
+	end
+	hwrtime = math.Clamp(inp, 0.5, 30)
+	local out = string.format("[Beatrun] Horizontal wallrun time set to %.2f seconds.", hwrtime)
+	BR_Feedback(ply, Color(0,200,255), out)
+end, function(cmd, str)
+	local suggestions = {"0.5","1","1.25","1.5","2","3","5"}
+	local prefix = (str or ""):Trim()
+	local out = {}
+	for _, v in ipairs(suggestions) do
+		if prefix == "" or string.StartWith(v, prefix) then
+			table.insert(out, cmd .. " " .. v)
+		end
+	end
+	return out
+end)
+
+-- Set vertical wallrun maximum duration (seconds)
+concommand.Add("beatrun_vwrtime", function(ply, cmd, args)
+	local inp = tonumber(args[1])
+	if not inp then
+		BR_Feedback(ply, Color(255,0,0), "[Beatrun] Usage: beatrun_vwrtime <seconds> (0.5 - 30)")
+		return
+	end
+	vwrtime = math.Clamp(inp, 0.5, 30)
+	local out = string.format("[Beatrun] Vertical wallrun time set to %.2f seconds.", vwrtime)
+	BR_Feedback(ply, Color(0,200,255), out)
+end, function(cmd, str)
+	local suggestions = {"0.5","1","1.25","1.5","2","3","5"}
+	local prefix = (str or ""):Trim()
+	local out = {}
+	for _, v in ipairs(suggestions) do
+		if prefix == "" or string.StartWith(v, prefix) then
+			table.insert(out, cmd .. " " .. v)
+		end
+	end
+	return out
+end)
 
 if SERVER then
 	util.AddNetworkString("BodyAnimWallrun")
