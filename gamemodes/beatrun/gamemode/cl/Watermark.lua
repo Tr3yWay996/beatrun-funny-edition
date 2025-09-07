@@ -1,4 +1,3 @@
---[[
 local wmx, wmy = 0, 0
 local wmtime = 0
 
@@ -15,7 +14,7 @@ hook.Add("PostRender", "Watermark", function()
 
 	cam.Start2D()
 		surface.SetTextPos(wmx, wmy)
-		surface.DrawText("Beta")
+		surface.DrawText("Funsies Edition")
 		surface.SetTextPos(wmx, wmy + th)
 		surface.DrawText(steamid)
 		surface.SetTextPos(wmx, wmy + (th * 2))
@@ -24,4 +23,3 @@ hook.Add("PostRender", "Watermark", function()
 		surface.DrawText(LocalPlayer():Nick())
 	cam.End2D()
 end)
---]]

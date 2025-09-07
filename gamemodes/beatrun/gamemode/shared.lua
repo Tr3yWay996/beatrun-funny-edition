@@ -1,6 +1,6 @@
 BEATRUN_SHARED = BEATRUN_SHARED or {}
 
-installedVersion = "1.0.62"
+installedVersion = "1.0.72"
 latestVersion = ""
 local checked
 
@@ -28,7 +28,7 @@ if not checked then
 			if latestVersion == installedVersion then
 				print("You're up to date, nice!")
 			else
-				print("You're not using the latest GitHub version.")
+				print("You're not using the latest GitHub version. You're using " .. installedVersion .. ", but " .. latestVersion .. " is available.")
 			end
 
 			checked = true
